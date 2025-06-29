@@ -10,47 +10,39 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late PostProvider postProvider;
+  bool _isInit = false;
 
   @override
-  void initState() {
-    super.initState();
-    postProvider = PostProvider();
-  }
-
-  @override
-  void dispose() {
-    postProvider.dispose();
-    super.dispose();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Provider.of<PostProvider>(context, listen: false).fetchPosts();
+      });
+      _isInit = true;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Pagination')),
-      body: ChangeNotifierProvider<PostProvider>(
-        create: (context) => postProvider,
-        child: Consumer<PostProvider>(
-          builder: (context, provider, child) {
-            return NotificationListener(
-              //adding pagination
-              onNotification: (ScrollNotification scrollInfo) {
-                if (scrollInfo.metrics.pixels ==
-                        scrollInfo.metrics.maxScrollExtent &&
-                    !postProvider.isLoading) {
-                  postProvider.fetchPosts();
-                }
-                return false;
-              },
-
-              child: ListView.builder(
-                itemCount:
-                    provider.posts.length + (postProvider.hasMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index >= provider.posts.length) {
-                    // Show a loading indicator at the end
-                    return const Center(child: CircularProgressIndicator());
-                  }
+      body: Consumer<PostProvider>(
+        builder: (context, provider, child) {
+          return NotificationListener<ScrollNotification>(
+            onNotification: (scrollInfo) {
+              if (scrollInfo.metrics.pixels ==
+                      scrollInfo.metrics.maxScrollExtent &&
+                  !provider.isLoading &&
+                  provider.hasMore) {
+                provider.fetchPosts();
+              }
+              return false;
+            },
+            child: ListView.builder(
+              itemCount: provider.posts.length + (provider.hasMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index < provider.posts.length) {
                   final post = provider.posts[index];
                   return Card(
                     child: ListTile(
@@ -58,11 +50,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       subtitle: Text(post.body),
                     ),
                   );
-                },
-              ),
-            );
-          },
-        ),
+                } else {
+                  return const Center(child: CircularProgressIndicator());
+                }
+              },
+            ),
+          );
+        },
       ),
     );
   }

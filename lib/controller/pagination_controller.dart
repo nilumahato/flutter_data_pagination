@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import '../model/post_model.dart';
 import '../repository/post_repository.dart';
@@ -40,7 +42,7 @@ class PostProvider with ChangeNotifier {
       }
     } catch (e) {
       // Handle error
-      print('Error fetching posts: $e');
+      log('Error fetching posts: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
